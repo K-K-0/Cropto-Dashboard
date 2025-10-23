@@ -103,7 +103,7 @@ func (b *BinanceClient) ReconnectLoop() {
 			continue
 		}
 		b.readLoop()
-		log.Println("Connection lost, reconnecting...")
+		log.Println("Connection lost, reconnecting......")
 		time.Sleep(b.ReconnectDelay)
 	}
 }
