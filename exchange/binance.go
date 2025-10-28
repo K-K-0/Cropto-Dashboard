@@ -128,24 +128,29 @@ func (b *BinanceClient) readLoop() {
 
 	go func() {
 		defer close(done)
-
-		_, msg, err := b.Conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Println("websocket error: ", err)
+		for {
+			_, message, err := b.Conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("WebSocket error: %v", err)
+				}
+				return
 			}
-			return
-		}
-		normalized, err := b.normalizeMessage(msg)
-		if err != nil {
-			log.Printf("Failed to parse message: %v", err)
-			continue
-		}
 
-		select {
-		case b.MessageChan <- normalized:
-		default:
-			log.Println("Message channel full, dropping message")
+			normalized, err := b.normalizeMessage(message)
+			if err != nil {
+				log.Printf("Failed to parse message: %v", err)
+				continue
+			}
+			if normalized == nil {
+				continue
+			}
+
+			select {
+			case b.MessageChan <- normalized:
+			default:
+				log.Println("Message channel full, dropping message")
+			}
 		}
 	}()
 

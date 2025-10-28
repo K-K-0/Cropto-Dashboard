@@ -93,7 +93,7 @@ func (c *Client) writePump() {
 	}
 }
 
-func serveWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error while upgrading: ", err)
