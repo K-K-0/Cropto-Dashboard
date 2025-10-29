@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Dashboard Test Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .status {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin-right: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .ticker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .ticker-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .ticker-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .ticker-symbol {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .ticker-price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .ticker-change {
+            font-size: 16px;
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .ticker-change.positive {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .ticker-change.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .ticker-info {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ticker-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .log {
+            background: #1f2937;
+            color: #10b981;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-time {
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Crypto Dashboard Test Client</h1>
+
+        <div class="status">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+            <button onclick="clearTickers()">Clear Data</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="messageCount">0</div>
+                <div>Messages Received</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="tickerCount">0</div>
+                <div>Active Tickers</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="updateRate">0</div>
+                <div>Updates/sec</div>
+            </div>
+        </div>
+
+        <div class="ticker-grid" id="tickerGrid"></div>
+
+        <h2 style="color: white; margin: 30px 0 15px 0;">Event Log</h2>
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let tickers = {};
+        let messageCount = 0;
+        let lastSecondCount = 0;
+        let updateTimer = null;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            
+            // Keep only last 50 entries
+            while (logDiv.children.length > 50) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        }
+
+        function updateStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            if (connected) {
+                indicator.className = 'status-indicator connected';
+                text.textContent = 'Connected to ws://localhost:8080/ws';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                indicator.className = 'status-indicator disconnected';
+                text.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+
+        function connect() {
+            if (ws) return;
+
+            log('Connecting to WebSocket...');
+            ws = new WebSocket('ws://localhost:8080/ws');
+
+            ws.onopen = () => {
+                log('✅ Connected successfully!');
+                updateStatus(true);
+                startUpdateRateCalculation();
+            };
+
+            ws.onmessage = (event) => {
+                messageCount++;
+                lastSecondCount++;
+                document.getElementById('messageCount').textContent = messageCount;
+
+                try {
+                    const data = JSON.parse(event.data);
+                    updateTicker(data);
+                } catch (e) {
+                    log('⚠️ Failed to parse message: ' + e.message);
+                }
+            };
+
+            ws.onerror = (error) => {
+                log('❌ WebSocket error occurred');
+                console.error(error);
+            };
+
+            ws.onclose = () => {
+                log('🔌 Connection closed');
+                updateStatus(false);
+                ws = null;
+                stopUpdateRateCalculation();
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                log('Disconnecting...');
+                ws.close();
+            }
+        }
+
+        function updateTicker(data) {
+            tickers[data.symbol] = data;
+            renderTickers();
+        }
+
+        function renderTickers() {
+            const grid = document.getElementById('tickerGrid');
+            grid.innerHTML = '';
+
+            document.getElementById('tickerCount').textContent = Object.keys(tickers).length;
+
+            for (const [symbol, data] of Object.entries(tickers)) {
+                const card = document.createElement('div');
+                card.className = 'ticker-card';
+
+                const changePercent = parseFloat(data.changePercent);
+                const changeClass = changePercent >= 0 ? 'positive' : 'negative';
+                const changeSign = changePercent >= 0 ? '+' : '';
+
+                card.innerHTML = `
+                    <div class="ticker-symbol">${symbol}</div>
+                    <div class="ticker-price">$${parseFloat(data.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="ticker-change ${changeClass}">
+                        ${changeSign}${changePercent.toFixed(2)}%
+                    </div>
+                    <div class="ticker-info">
+                        <div class="ticker-info-row">
+                            <span>24h High:</span>
+                            <span>$${parseFloat(data.high).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="ticker-info-row">
+                            <span>24h Low:</span>
+                            <span>$${parseFloat(data.low).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="ticker-info-row">
+                            <span>Volume:</span>
+                            <span>${parseFloat(data.volume).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            }
+        }
+
+        function startUpdateRateCalculation() {
+            updateTimer = setInterval(() => {
+                document.getElementById('updateRate').textContent = lastSecondCount;
+                lastSecondCount = 0;
+            }, 1000);
+        }
+
+        function stopUpdateRateCalculation() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+                updateTimer = null;
+            }
+            document.getElementById('updateRate').textContent = '0';
+        }
+
+        function clearTickers() {
+            tickers = {};
+            renderTickers();
+            log('🗑️ Cleared all ticker data');
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('📝 Log cleared');
+        }
+
+        // Auto-connect on load
+        window.onload = () => {
+            log('🎯 Test client loaded. Click Connect to start.');
+        };
+
+        // Clean disconnect on page close
+        window.onbeforeunload = () => {
+            if (ws) ws.close();
+        };
+    </script>
+</body>
+</html>
