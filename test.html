@@ -315,7 +315,21 @@
         }
 
         function updateTicker(data) {
-            tickers[data.symbol] = data;
+            // Merge with existing data (trade updates price, ticker updates stats)
+            if (tickers[data.symbol]) {
+                // Keep existing stats if new message doesn't have them
+                tickers[data.symbol] = {
+                    ...tickers[data.symbol],
+                    ...data,
+                    // Only update these if they're not "0" (from trade stream)
+                    changePercent: data.changePercent !== "0" ? data.changePercent : tickers[data.symbol].changePercent,
+                    change: data.change !== "0" ? data.change : tickers[data.symbol].change,
+                    high: data.high !== "0" ? data.high : tickers[data.symbol].high,
+                    low: data.low !== "0" ? data.low : tickers[data.symbol].low,
+                };
+            } else {
+                tickers[data.symbol] = data;
+            }
             renderTickers();
         }
 
