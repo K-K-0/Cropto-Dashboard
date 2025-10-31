@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -43,10 +44,9 @@ func min(a, b int) int {
 	return b
 }
 
-// BinanceTickerData represents the ticker message from Binance
-// IMPORTANT: JSON keys must match Binance's actual field names (e, E, s, p, P, c, v, q, h, l)
+// BinanceTickerData represents the 24hr ticker message from Binance
 type BinanceTickerData struct {
-	EventType          string     `json:"e"`
+	EventType          string     `json:"e"` // "24hrTicker"
 	EventTime          int64      `json:"E"`
 	Symbol             string     `json:"s"`
 	PriceChange        FlexString `json:"p"`
@@ -58,6 +58,20 @@ type BinanceTickerData struct {
 	LowPrice           FlexString `json:"l"`
 }
 
+// BinanceTradeData represents individual trade messages (real-time)
+type BinanceTradeData struct {
+	EventType     string     `json:"e"` // "trade"
+	EventTime     int64      `json:"E"`
+	Symbol        string     `json:"s"`
+	TradeID       int64      `json:"t"`
+	Price         FlexString `json:"p"`
+	Quantity      FlexString `json:"q"`
+	BuyerOrderID  int64      `json:"b"`
+	SellerOrderID int64      `json:"a"`
+	TradeTime     int64      `json:"T"`
+	IsBuyerMaker  bool       `json:"m"`
+}
+
 type TickerMessage struct {
 	Symbol        string `json:"symbol"`
 	Price         string `json:"price"`
@@ -67,6 +81,18 @@ type TickerMessage struct {
 	High          string `json:"high"`
 	Low           string `json:"low"`
 	Timestamp     int64  `json:"timestamp"`
+	EventType     string `json:"eventType"` // "trade" or "ticker"
+}
+
+// Helper to clean price strings (remove trailing zeros from float conversion)
+func cleanPrice(price FlexString) string {
+	priceStr := price.String()
+	// Remove excessive decimal places from float conversion
+	// "67234.500000" -> "67234.50"
+	if val, err := strconv.ParseFloat(priceStr, 64); err == nil {
+		return fmt.Sprintf("%.8f", val) // Keep 8 decimals, trim trailing zeros later
+	}
+	return priceStr
 }
 
 type BinanceClient struct {
@@ -80,7 +106,7 @@ type BinanceClient struct {
 func NewBinanceClient(symbols []string) *BinanceClient {
 	return &BinanceClient{
 		Symbols:         symbols,
-		MessageChan:     make(chan []byte, 256), // Buffered channel
+		MessageChan:     make(chan []byte, 256),
 		ReconnectDelay:  1 * time.Second,
 		ShouldReconnect: true,
 	}
@@ -92,7 +118,7 @@ func (c *BinanceClient) Connect() error {
 	streamName := c.BuildStreamName()
 	url := fmt.Sprintf("%s%s", binanceWSURL, streamName)
 
-	log.Println("Connecting to Binance:", url)
+	log.Println("🔗 Connecting to Binance:", url)
 
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -106,9 +132,11 @@ func (c *BinanceClient) Connect() error {
 	return nil
 }
 
+// BuildStreamName creates subscription for BOTH trade and ticker streams
 func (b *BinanceClient) BuildStreamName() string {
 	if len(b.Symbols) == 0 {
-		return "btcusdt@ticker"
+		// Default: both trade and ticker for BTC
+		return "btcusdt@trade/btcusdt@ticker"
 	}
 
 	streams := ""
@@ -116,7 +144,8 @@ func (b *BinanceClient) BuildStreamName() string {
 		if i > 0 {
 			streams += "/"
 		}
-		streams += fmt.Sprintf("%s@ticker", symbol)
+		// Subscribe to BOTH trade (live price) and ticker (24h stats)
+		streams += fmt.Sprintf("%s@trade/%s@ticker", symbol, symbol)
 	}
 	return streams
 }
@@ -132,7 +161,6 @@ func (b *BinanceClient) ReconnectLoop() {
 			log.Printf("❌ Connection failed: %v. Retrying in %v", err, b.ReconnectDelay)
 			time.Sleep(b.ReconnectDelay)
 
-			// Exponential backoff
 			b.ReconnectDelay *= 2
 			if b.ReconnectDelay > 120*time.Second {
 				b.ReconnectDelay = 120 * time.Second
@@ -140,10 +168,8 @@ func (b *BinanceClient) ReconnectLoop() {
 			continue
 		}
 
-		// Connected successfully, start reading
 		b.readLoop()
 
-		// Connection lost, will retry
 		log.Println("🔌 Connection lost, reconnecting...")
 		time.Sleep(b.ReconnectDelay)
 	}
@@ -167,9 +193,13 @@ func (b *BinanceClient) readLoop() {
 
 	done := make(chan struct{})
 
-	// Read messages in separate goroutine
 	go func() {
 		defer close(done)
+		msgCount := 0
+		debugCount := 0
+		tradeCount := 0
+		tickerCount := 0
+
 		for {
 			_, message, err := b.Conn.ReadMessage()
 			if err != nil {
@@ -179,7 +209,8 @@ func (b *BinanceClient) readLoop() {
 				return
 			}
 
-			// Parse and normalize
+			msgCount++
+
 			normalized, err := b.normalizeMessage(message)
 			if err != nil {
 				log.Printf("⚠️ Failed to parse message: %v", err)
@@ -190,7 +221,24 @@ func (b *BinanceClient) readLoop() {
 				continue
 			}
 
-			// Send to channel (non-blocking)
+			// Count event types
+			if bytes.Contains(normalized, []byte(`"eventType":"trade"`)) {
+				tradeCount++
+			} else if bytes.Contains(normalized, []byte(`"eventType":"ticker"`)) {
+				tickerCount++
+			}
+
+			// Log stats every 50 messages
+			if msgCount%50 == 0 {
+				log.Printf("📊 Stats - Total: %d | Trades: %d | Tickers: %d", msgCount, tradeCount, tickerCount)
+			}
+
+			// Only log first 10 messages
+			if debugCount < 10 {
+				log.Printf("✅ Sending message #%d: %s", msgCount, string(normalized))
+				debugCount++
+			}
+
 			select {
 			case b.MessageChan <- normalized:
 			default:
@@ -199,7 +247,6 @@ func (b *BinanceClient) readLoop() {
 		}
 	}()
 
-	// Ping loop
 	for {
 		select {
 		case <-done:
@@ -214,50 +261,101 @@ func (b *BinanceClient) readLoop() {
 }
 
 func (b *BinanceClient) normalizeMessage(data []byte) ([]byte, error) {
-	// Trim any whitespace or newlines
 	data = bytes.TrimSpace(data)
 
-	// First check if this is a combined stream wrapper
+	// Check if this is a combined stream wrapper
 	var wrapper struct {
 		Stream string          `json:"stream"`
 		Data   json.RawMessage `json:"data"`
 	}
 
 	if err := json.Unmarshal(data, &wrapper); err == nil && wrapper.Stream != "" {
-		// This is wrapped format, extract the data
+		// Extract the actual data from wrapper
 		data = wrapper.Data
 	}
 
-	// Now parse the actual ticker data
-	var binanceData BinanceTickerData
+	// Determine event type - use flexible map to handle string OR number
+	var eventCheck map[string]interface{}
 
-	if err := json.Unmarshal(data, &binanceData); err != nil {
-		log.Printf("❌ Unmarshal error. Data: %s", string(data[:min(len(data), 200)]))
-		return nil, fmt.Errorf("failed to unmarshal ticker: %w", err)
+	if err := json.Unmarshal(data, &eventCheck); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Debug: Log what we parsed (first few times)
-	log.Printf("✅ Parsed ticker - Event: %s, Symbol: %s, Price: %s",
-		binanceData.EventType, binanceData.Symbol, binanceData.LastPrice.String())
-
-	// Skip non-ticker events (this is normal, not an error)
-	if binanceData.EventType != "24hrTicker" {
-		return nil, nil // Return nil without error
+	// Get event type (handle both string and number)
+	eventType := ""
+	if e, ok := eventCheck["e"]; ok {
+		switch v := e.(type) {
+		case string:
+			eventType = v
+		case float64:
+			eventType = fmt.Sprintf("%.0f", v)
+		default:
+			// Unknown type, skip
+			return nil, nil
+		}
+	} else {
+		// No event type field, skip
+		return nil, nil
 	}
 
-	// Convert to our normalized format
-	ticker := TickerMessage{
-		Symbol:        binanceData.Symbol,
-		Price:         binanceData.LastPrice.String(),
-		Change:        binanceData.PriceChange.String(),
-		ChangePercent: binanceData.PriceChangePercent.String(),
-		Volume:        binanceData.Volume.String(),
-		High:          binanceData.HighPrice.String(),
-		Low:           binanceData.LowPrice.String(),
-		Timestamp:     binanceData.EventTime,
+	// Handle TRADE events (real-time price updates)
+	if eventType == "trade" {
+		var tradeData BinanceTradeData
+
+		if err := json.Unmarshal(data, &tradeData); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal trade: %w", err)
+		}
+
+		// Convert to our standard format - EXPLICITLY set each field
+		ticker := TickerMessage{
+			Symbol:        tradeData.Symbol,
+			Price:         cleanPrice(tradeData.Price),
+			Change:        "0",
+			ChangePercent: "0",
+			Volume:        cleanPrice(tradeData.Quantity),
+			High:          "0",
+			Low:           "0",
+			Timestamp:     tradeData.TradeTime,
+			EventType:     "trade",
+		}
+
+		// Debug first few
+		jsonBytes, _ := json.Marshal(ticker)
+		log.Printf("🔵 TRADE message: %s", string(jsonBytes))
+
+		return json.Marshal(ticker)
 	}
 
-	return json.Marshal(ticker)
+	// Handle 24hrTicker events (statistics)
+	if eventType == "24hrTicker" {
+		var binanceData BinanceTickerData
+
+		if err := json.Unmarshal(data, &binanceData); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal ticker: %w", err)
+		}
+
+		// Convert to our standard format - EXPLICITLY set each field
+		ticker := TickerMessage{
+			Symbol:        binanceData.Symbol,
+			Price:         cleanPrice(binanceData.LastPrice),
+			Change:        cleanPrice(binanceData.PriceChange),
+			ChangePercent: cleanPrice(binanceData.PriceChangePercent),
+			Volume:        cleanPrice(binanceData.Volume),
+			High:          cleanPrice(binanceData.HighPrice),
+			Low:           cleanPrice(binanceData.LowPrice),
+			Timestamp:     binanceData.EventTime,
+			EventType:     "ticker",
+		}
+
+		// Debug first few
+		jsonBytes, _ := json.Marshal(ticker)
+		log.Printf("🟢 TICKER message: %s", string(jsonBytes))
+
+		return json.Marshal(ticker)
+	}
+
+	// Ignore other event types silently
+	return nil, nil
 }
 
 func (b *BinanceClient) GetMessageChannel() <-chan []byte {

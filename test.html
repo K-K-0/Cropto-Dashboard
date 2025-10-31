@@ -171,6 +171,47 @@
             margin-bottom: 5px;
         }
 
+        .ticker-timestamp {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .ticker-timestamp .label {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .ticker-timestamp .time {
+            color: #667eea;
+        }
+
+        .ticker-timestamp .age {
+            display: block;
+            margin-top: 3px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        .ticker-timestamp.fresh .time {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .ticker-timestamp.recent .time {
+            color: #667eea;
+        }
+
+        .ticker-timestamp.stale .time {
+            color: #ef4444;
+        }
+
         .log {
             background: #1f2937;
             color: #10b981;
@@ -189,6 +230,25 @@
 
         .log-time {
             color: #6b7280;
+        }
+
+        .event-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .event-badge.trade {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .event-badge.ticker {
+            background: #d1fae5;
+            color: #065f46;
         }
     </style>
 </head>
@@ -211,11 +271,15 @@
         <div class="stats">
             <div class="stat-item">
                 <div class="stat-value" id="messageCount">0</div>
-                <div>Messages Received</div>
+                <div>Messages</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="tradeCount">0</div>
+                <div>Trades</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="tickerCount">0</div>
-                <div>Active Tickers</div>
+                <div>Tickers</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" id="updateRate">0</div>
@@ -233,6 +297,8 @@
         let ws = null;
         let tickers = {};
         let messageCount = 0;
+        let tradeCount = 0;
+        let tickerEventCount = 0;
         let lastSecondCount = 0;
         let updateTimer = null;
 
@@ -244,7 +310,6 @@
             entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
             logDiv.insertBefore(entry, logDiv.firstChild);
             
-            // Keep only last 50 entries
             while (logDiv.children.length > 50) {
                 logDiv.removeChild(logDiv.lastChild);
             }
@@ -288,9 +353,16 @@
 
                 try {
                     const data = JSON.parse(event.data);
+                    
+                    // Debug first 10 messages
+                    if (messageCount <= 10) {
+                        console.log('Message #' + messageCount + ':', data);
+                        log(`${data.eventType}: ${data.symbol} $${data.price} (Δ${data.changePercent}%)`);
+                    }
+                    
                     updateTicker(data);
                 } catch (e) {
-                    log('⚠️ Failed to parse message: ' + e.message);
+                    log('⚠️ Failed to parse: ' + e.message);
                 }
             };
 
@@ -315,21 +387,73 @@
         }
 
         function updateTicker(data) {
-            // Merge with existing data (trade updates price, ticker updates stats)
-            if (tickers[data.symbol]) {
-                // Keep existing stats if new message doesn't have them
+            const incomingPrice = String(data.price);
+            const incomingTimestamp = Number(data.timestamp);
+            
+            if (parseFloat(incomingPrice) > 1000000000000) {
+                console.error(`REJECTED: ${data.symbol} price looks like timestamp`);
+                return;
+            }
+            
+            // Count event types
+            if (data.eventType === 'trade') {
+                tradeCount++;
+                document.getElementById('tradeCount').textContent = tradeCount;
+            } else if (data.eventType === 'ticker') {
+                tickerEventCount++;
+                document.getElementById('tickerCount').textContent = tickerEventCount;
+                
+                // Log ticker events (these have the stats!)
+                if (tickerEventCount <= 5) {
+                    console.log(`📊 TICKER: ${data.symbol} | Δ${data.changePercent}% | H:${data.high} L:${data.low}`);
+                }
+            }
+            
+            if (!tickers[data.symbol]) {
+                // Initialize
                 tickers[data.symbol] = {
-                    ...tickers[data.symbol],
-                    ...data,
-                    // Only update these if they're not "0" (from trade stream)
-                    changePercent: data.changePercent !== "0" ? data.changePercent : tickers[data.symbol].changePercent,
-                    change: data.change !== "0" ? data.change : tickers[data.symbol].change,
-                    high: data.high !== "0" ? data.high : tickers[data.symbol].high,
-                    low: data.low !== "0" ? data.low : tickers[data.symbol].low,
+                    symbol: data.symbol,
+                    price: incomingPrice,
+                    change: data.change || "0",
+                    changePercent: data.changePercent || "0",
+                    volume: data.volume || "0",
+                    high: data.high || "0",
+                    low: data.low || "0",
+                    timestamp: incomingTimestamp,
+                    eventType: data.eventType
                 };
             } else {
-                tickers[data.symbol] = data;
+                const existing = tickers[data.symbol];
+                
+                if (data.eventType === 'trade') {
+                    // TRADE: Update ONLY price, KEEP stats
+                    tickers[data.symbol] = {
+                        symbol: data.symbol,
+                        price: incomingPrice,
+                        change: existing.change,
+                        changePercent: existing.changePercent,
+                        volume: existing.volume,
+                        high: existing.high,
+                        low: existing.low,
+                        timestamp: incomingTimestamp,
+                        eventType: 'trade'
+                    };
+                } else if (data.eventType === 'ticker') {
+                    // TICKER: Update EVERYTHING
+                    tickers[data.symbol] = {
+                        symbol: data.symbol,
+                        price: incomingPrice,
+                        change: data.change,
+                        changePercent: data.changePercent,
+                        volume: data.volume,
+                        high: data.high,
+                        low: data.low,
+                        timestamp: incomingTimestamp,
+                        eventType: 'ticker'
+                    };
+                }
             }
+            
             renderTickers();
         }
 
@@ -337,35 +461,65 @@
             const grid = document.getElementById('tickerGrid');
             grid.innerHTML = '';
 
-            document.getElementById('tickerCount').textContent = Object.keys(tickers).length;
-
             for (const [symbol, data] of Object.entries(tickers)) {
                 const card = document.createElement('div');
                 card.className = 'ticker-card';
 
-                const changePercent = parseFloat(data.changePercent);
+                const price = parseFloat(data.price || 0);
+                const changePercent = parseFloat(data.changePercent || 0);
                 const changeClass = changePercent >= 0 ? 'positive' : 'negative';
                 const changeSign = changePercent >= 0 ? '+' : '';
 
+                const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+                const now = new Date();
+                const ageMs = now - timestamp;
+                const ageSec = (ageMs / 1000).toFixed(1);
+                
+                const timeString = timestamp.toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    fractionalSecondDigits: 3
+                });
+                const dateString = timestamp.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                let freshnessClass = '';
+                if (ageMs < 1000) freshnessClass = 'fresh';
+                else if (ageMs < 5000) freshnessClass = 'recent';
+                else freshnessClass = 'stale';
+                
+                const eventBadge = data.eventType === 'trade' ? 
+                    '<span class="event-badge trade">TRADE</span>' : 
+                    '<span class="event-badge ticker">TICKER</span>';
+
                 card.innerHTML = `
-                    <div class="ticker-symbol">${symbol}</div>
-                    <div class="ticker-price">$${parseFloat(data.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="ticker-symbol">${symbol} ${eventBadge}</div>
+                    <div class="ticker-price">$${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="ticker-change ${changeClass}">
                         ${changeSign}${changePercent.toFixed(2)}%
                     </div>
                     <div class="ticker-info">
                         <div class="ticker-info-row">
                             <span>24h High:</span>
-                            <span>$${parseFloat(data.high).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span>$${parseFloat(data.high || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                         </div>
                         <div class="ticker-info-row">
                             <span>24h Low:</span>
-                            <span>$${parseFloat(data.low).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span>$${parseFloat(data.low || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                         </div>
                         <div class="ticker-info-row">
                             <span>Volume:</span>
-                            <span>${parseFloat(data.volume).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
+                            <span>${parseFloat(data.volume || 0).toLocaleString('en-US', {maximumFractionDigits: 0})}</span>
                         </div>
+                    </div>
+                    <div class="ticker-timestamp ${freshnessClass}">
+                        <span class="label">Last Update</span>
+                        <span class="time">${dateString} ${timeString}</span>
+                        <span class="age">(${ageSec}s ago)</span>
                     </div>
                 `;
 
@@ -390,8 +544,12 @@
 
         function clearTickers() {
             tickers = {};
+            tradeCount = 0;
+            tickerEventCount = 0;
+            document.getElementById('tradeCount').textContent = 0;
+            document.getElementById('tickerCount').textContent = 0;
             renderTickers();
-            log('🗑️ Cleared all ticker data');
+            log('🗑️ Cleared all data');
         }
 
         function clearLog() {
@@ -399,12 +557,10 @@
             log('📝 Log cleared');
         }
 
-        // Auto-connect on load
         window.onload = () => {
             log('🎯 Test client loaded. Click Connect to start.');
         };
 
-        // Clean disconnect on page close
         window.onbeforeunload = () => {
             if (ws) ws.close();
         };
