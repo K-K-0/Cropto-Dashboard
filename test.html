@@ -402,8 +402,7 @@
             } else if (data.eventType === 'ticker') {
                 tickerEventCount++;
                 document.getElementById('tickerCount').textContent = tickerEventCount;
-                
-                // Debug ticker events - show what we're receiving
+
                 console.log(`📊 TICKER RECEIVED:`, {
                     symbol: data.symbol,
                     changePercent: data.changePercent,
@@ -444,20 +443,20 @@
                         eventType: 'trade'
                     };
                 } else if (data.eventType === 'ticker') {
-                    // TICKER: Update EVERYTHING with fallbacks
+                
                     tickers[data.symbol] = {
                         symbol: data.symbol,
                         price: incomingPrice,
-                        change: data.change || "0",              // ✅ FIXED: Fallback to "0"
-                        changePercent: data.changePercent || "0", // ✅ FIXED: Fallback to "0"
-                        volume: data.volume || "0",               // ✅ FIXED: Fallback to "0"
-                        high: data.high || "0",                   // ✅ FIXED: Fallback to "0"
-                        low: data.low || "0",                     // ✅ FIXED: Fallback to "0"
+                        change: data.change || "0",              
+                        changePercent: data.changePercent || "0",
+                        volume: data.volume || "0",              
+                        high: data.high || "0",                  
+                        low: data.low || "0",                    
                         timestamp: incomingTimestamp,
                         eventType: 'ticker'
                     };
                     
-                    // Debug: Show what we stored
+
                     console.log(`✅ TICKER STORED for ${data.symbol}:`, tickers[data.symbol]);
                 }
             }
