@@ -403,14 +403,19 @@
                 tickerEventCount++;
                 document.getElementById('tickerCount').textContent = tickerEventCount;
                 
-                // Log ticker events (these have the stats!)
-                if (tickerEventCount <= 5) {
-                    console.log(`📊 TICKER: ${data.symbol} | Δ${data.changePercent}% | H:${data.high} L:${data.low}`);
-                }
+                // Debug ticker events - show what we're receiving
+                console.log(`📊 TICKER RECEIVED:`, {
+                    symbol: data.symbol,
+                    changePercent: data.changePercent,
+                    change: data.change,
+                    high: data.high,
+                    low: data.low,
+                    volume: data.volume
+                });
             }
             
             if (!tickers[data.symbol]) {
-                // Initialize
+                // Initialize - use fallback values
                 tickers[data.symbol] = {
                     symbol: data.symbol,
                     price: incomingPrice,
@@ -426,31 +431,34 @@
                 const existing = tickers[data.symbol];
                 
                 if (data.eventType === 'trade') {
-                    // TRADE: Update ONLY price, KEEP stats
+                    // TRADE: Update ONLY price, KEEP existing stats
                     tickers[data.symbol] = {
                         symbol: data.symbol,
                         price: incomingPrice,
-                        change: existing.change,
-                        changePercent: existing.changePercent,
-                        volume: existing.volume,
-                        high: existing.high,
-                        low: existing.low,
+                        change: existing.change || "0",
+                        changePercent: existing.changePercent || "0",
+                        volume: existing.volume || "0",
+                        high: existing.high || "0",
+                        low: existing.low || "0",
                         timestamp: incomingTimestamp,
                         eventType: 'trade'
                     };
                 } else if (data.eventType === 'ticker') {
-                    // TICKER: Update EVERYTHING
+                    // TICKER: Update EVERYTHING with fallbacks
                     tickers[data.symbol] = {
                         symbol: data.symbol,
                         price: incomingPrice,
-                        change: data.change,
-                        changePercent: data.changePercent,
-                        volume: data.volume,
-                        high: data.high,
-                        low: data.low,
+                        change: data.change || "0",              // ✅ FIXED: Fallback to "0"
+                        changePercent: data.changePercent || "0", // ✅ FIXED: Fallback to "0"
+                        volume: data.volume || "0",               // ✅ FIXED: Fallback to "0"
+                        high: data.high || "0",                   // ✅ FIXED: Fallback to "0"
+                        low: data.low || "0",                     // ✅ FIXED: Fallback to "0"
                         timestamp: incomingTimestamp,
                         eventType: 'ticker'
                     };
+                    
+                    // Debug: Show what we stored
+                    console.log(`✅ TICKER STORED for ${data.symbol}:`, tickers[data.symbol]);
                 }
             }
             
