@@ -2,6 +2,8 @@ package exchange
 
 import (
 	"bytes"
+	"cropto-dashboard/types"
+
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,31 +13,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// FlexString handles both string and number types from JSON
-type FlexString string
-
-func (f *FlexString) UnmarshalJSON(data []byte) error {
-	// Try to unmarshal as string first
-	var s string
-	if err := json.Unmarshal(data, &s); err == nil {
-		*f = FlexString(s)
-		return nil
-	}
-
-	// If that fails, try as number
-	var num float64
-	if err := json.Unmarshal(data, &num); err == nil {
-		*f = FlexString(fmt.Sprintf("%f", num))
-		return nil
-	}
-
-	return fmt.Errorf("cannot unmarshal %s into FlexString", data)
-}
-
-func (f FlexString) String() string {
-	return string(f)
-}
-
 // Helper function
 func min(a, b int) int {
 	if a < b {
@@ -44,49 +21,9 @@ func min(a, b int) int {
 	return b
 }
 
-// BinanceTickerData represents the 24hr ticker message from Binance
-type BinanceTickerData struct {
-	EventType          string     `json:"e"` // "24hrTicker"
-	EventTime          int64      `json:"E"`
-	Symbol             string     `json:"s"`
-	PriceChange        FlexString `json:"p"`
-	PriceChangePercent FlexString `json:"P"`
-	LastPrice          FlexString `json:"c"`
-	Volume             FlexString `json:"v"`
-	QuoteVolume        FlexString `json:"q"`
-	HighPrice          FlexString `json:"h"`
-	LowPrice           FlexString `json:"l"`
-}
-
-// BinanceTradeData represents individual trade messages (real-time)
-type BinanceTradeData struct {
-	EventType     string     `json:"e"` // "trade"
-	EventTime     int64      `json:"E"`
-	Symbol        string     `json:"s"`
-	TradeID       int64      `json:"t"`
-	Price         FlexString `json:"p"`
-	Quantity      FlexString `json:"q"`
-	BuyerOrderID  int64      `json:"b"`
-	SellerOrderID int64      `json:"a"`
-	TradeTime     int64      `json:"T"`
-	IsBuyerMaker  bool       `json:"m"`
-}
-
-type TickerMessage struct {
-	Symbol        string `json:"symbol"`
-	Price         string `json:"price"`
-	Change        string `json:"change"`
-	ChangePercent string `json:"changePercent"`
-	Volume        string `json:"volume"`
-	High          string `json:"high"`
-	Low           string `json:"low"`
-	Timestamp     int64  `json:"timestamp"`
-	EventType     string `json:"eventType"` // "trade" or "ticker"
-}
-
 // Helper to clean price strings (remove trailing zeros from float conversion)
-func cleanPrice(price FlexString) string {
-	priceStr := price.String()
+func cleanPrice(price types.FlexString) string {
+	priceStr := string(price)
 	// Remove excessive decimal places from float conversion
 	// "67234.500000" -> "67234.50"
 	if val, err := strconv.ParseFloat(priceStr, 64); err == nil {
@@ -300,14 +237,14 @@ func (b *BinanceClient) normalizeMessage(data []byte) ([]byte, error) {
 
 	// Handle TRADE events (real-time price updates)
 	if eventType == "trade" {
-		var tradeData BinanceTradeData
+		var tradeData types.BinanceTradeData
 
 		if err := json.Unmarshal(data, &tradeData); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal trade: %w", err)
 		}
 
 		// Convert to our standard format - EXPLICITLY set each field
-		ticker := TickerMessage{
+		ticker := types.TickerMessage{
 			Symbol:        tradeData.Symbol,
 			Price:         cleanPrice(tradeData.Price),
 			Change:        "0",
@@ -328,14 +265,14 @@ func (b *BinanceClient) normalizeMessage(data []byte) ([]byte, error) {
 
 	// Handle 24hrTicker events (statistics)
 	if eventType == "24hrTicker" {
-		var binanceData BinanceTickerData
+		var binanceData types.BinanceTickerData
 
 		if err := json.Unmarshal(data, &binanceData); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal ticker: %w", err)
 		}
 
 		// Convert to our standard format - EXPLICITLY set each field
-		ticker := TickerMessage{
+		ticker := types.TickerMessage{
 			Symbol:        binanceData.Symbol,
 			Price:         cleanPrice(binanceData.LastPrice),
 			Change:        cleanPrice(binanceData.PriceChange),

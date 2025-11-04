@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"crypto-dashboard/exchange"
-	"crypto-dashboard/server/websocket"
+	"cropto-dashboard/exchange"
+	"cropto-dashboard/server/websocket"
 	"log"
 	"net/http"
 	"os"
