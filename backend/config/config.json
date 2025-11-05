@@ -1,0 +1,15 @@
+{
+  "symbols": [
+    "btcusdt",
+    "ethusdt",
+    "bnbusdt",
+    "solusdt",
+    "dogeusdt",
+    "adausdt",
+    "xrpusdt",
+    "maticusdt",
+    "linkusdt",
+    "dotusdt"
+  ],
+  "port": 8080
+}
