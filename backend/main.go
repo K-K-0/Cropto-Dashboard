@@ -26,7 +26,11 @@ func main() {
 	log.Println("Starting websocket Hub...")
 	go hub.Run()
 
-	symbols := []string{"btcusdt", "ethusdt", "bnbusdt", "solusdt", "xrpusdt"}
+	symbols := []string{"btcusdt", "ethusdt", "bnbusdt", "solusdt",
+		"dogeusdt", "adausdt", "xrpusdt", "maticusdt",
+		"linkusdt", "dotusdt", "avaxusdt", "uniusdt",
+		"ltcusdt", "atomusdt", "etcusdt", "xlmusdt",
+		"vetusdt", "filusdt", "trxusdt", "algousdt"}
 	binanceClient := *exchange.NewBinanceClient(symbols)
 	binanceClient.Start()
 
