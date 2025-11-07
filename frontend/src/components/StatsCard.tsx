@@ -1,4 +1,4 @@
-import { Icon, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 
 interface StatsCardProps {
     icon: LucideIcon,
