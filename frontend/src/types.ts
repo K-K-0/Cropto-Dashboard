@@ -18,12 +18,12 @@ export interface LivePrice {
 
 export interface TickerStats {
     symbol: string
-    price: string
+    price: number
     change: number
     changePercent: number
-    high: string
-    low: string
-    volume: string
+    high: number
+    low: number
+    volume: number
     timestamp: number
 }
 

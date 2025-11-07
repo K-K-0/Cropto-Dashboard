@@ -15,7 +15,7 @@ export const useWebsocket = () => {
 
     const wsRef = useRef<WebSocket | null>(null)
     const lastSecondCountRef = useRef(0)
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+    const reconnectTimeoutRef = useRef<number | null>(null)
 
     const connect = useCallback(() => {
         try {
@@ -33,7 +33,7 @@ export const useWebsocket = () => {
                     const data: webSocketMessage = JSON.parse(event.data)
                     lastSecondCountRef.current ++
 
-                    setstats((prev) => ({
+                    setStats((prev) => ({
                         ...prev,
                         totalMessages: prev.totalMessages + 1
                     }))
@@ -55,7 +55,7 @@ export const useWebsocket = () => {
                             ...prev, [data.symbol]: {
                                 symbol: data.symbol,
                                 price: parseFloat(data.price),
-                                change: (data.change),
+                                change: parseFloat(data.change),
                                 changePercent: parseFloat(data.changePercent),
                                 high: parseFloat(data.high),
                                 low: parseFloat(data.low),
