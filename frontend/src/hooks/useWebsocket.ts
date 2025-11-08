@@ -65,12 +65,12 @@ export const useWebsocket = () => {
                         }))
                     }
                 } catch (error) {
-                    console.error('❌ Error parsing message:', error);
+                    console.error('Error parsing message:', error);
                 }
             }
 
               ws.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
+                console.error('WebSocket error:', error);
             };
 
             ws.onclose = () => {
@@ -79,7 +79,7 @@ export const useWebsocket = () => {
                 wsRef.current = null;
 
                 reconnectTimeoutRef.current = setTimeout(() => {
-                console.log('🔄 Attempting to reconnect...');
+                console.log('Attempting to reconnect...');
                 connect();
                 }, 3000);
             };
@@ -87,7 +87,7 @@ export const useWebsocket = () => {
             wsRef.current = ws;
 
         } catch (error) {
-            console.error('❌ Connection error:', error);
+            console.error(' Connection error:', error);
         }
     }, [])
 
