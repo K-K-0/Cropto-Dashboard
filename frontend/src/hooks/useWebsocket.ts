@@ -78,7 +78,6 @@ export const useWebsocket = () => {
                 setConnected(false);
                 wsRef.current = null;
 
-                // Auto-reconnect after 3 seconds
                 reconnectTimeoutRef.current = setTimeout(() => {
                 console.log('🔄 Attempting to reconnect...');
                 connect();

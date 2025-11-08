@@ -37,7 +37,7 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
           : "border-red-300 hover:border-red-400"
       }`}
     >
-      {/* Header */}
+      
       <div className="flex items-center justify-between mb-3">
         <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           {ticker.symbol}
@@ -59,12 +59,12 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
         </span>
       </div>
 
-      {/* Price */}
+    
       <div className="text-2xl sm:text-3xl font-bold mb-5 text-gray-900 dark:text-gray-100 break-words">
-        {/* {formatPrice(ticker.price)} */}
+
       </div>
 
-      {/* Stats Grid */}
+
       <div className="grid grid-cols-2 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div className="flex flex-col">
           <span className="text-gray-500 dark:text-gray-400">24h High</span>
@@ -98,7 +98,7 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
         </div>
       </div>
 
-      {/* Timestamp */}
+      
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
         Updated {getTimeAgo(ticker.timestamp)}
       </div>

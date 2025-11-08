@@ -9,7 +9,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
-      {/* Header */}
+    
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between p-5">
           <h1 className="flex items-center gap-2 text-2xl font-bold">
@@ -34,9 +34,9 @@ function App() {
         </div>
       </header>
 
-      {/* Main Container */}
+  
       <main className="flex-1 max-w-7xl mx-auto w-full p-6 space-y-10">
-        {/* Stats Section */}
+        
         <div>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-200">
             <Zap className="text-yellow-500" />
@@ -70,7 +70,7 @@ function App() {
           </div>
         </div>
 
-        {/* Live Prices */}
+
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-200">
             <Zap className="text-emerald-500" />
@@ -89,7 +89,7 @@ function App() {
           )}
         </section>
 
-        {/* 24h Stats */}
+
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-200">
             <Activity className="text-purple-500" />
@@ -109,10 +109,10 @@ function App() {
         </section>
       </main>
 
-      {/* Footer */}
+
       <footer className="py-6 border-t border-gray-200 dark:border-gray-800 text-center text-sm text-gray-500 dark:text-gray-400">
         Powered by <span className="font-medium text-blue-600">WebSocket</span> •{" "}
-        <span className="italic">Real-time Crypto Data</span>
+        <span className="italic"></span>
       </footer>
     </div>
   );
