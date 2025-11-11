@@ -31,79 +31,77 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
 
   return (
     <div
-      className={`rounded-2xl shadow-md p-5 transition-all duration-300 bg-white dark:bg-gray-900 hover:shadow-xl border flex flex-col justify-between ${
-        isPositive
-          ? "border-green-300 hover:border-green-400"
-          : "border-red-300 hover:border-red-400"
-      }`}
+      className={`rounded-2xl shadow-lg p-6 bg-white dark:bg-gray-900 border transition-all duration-300 
+      hover:shadow-2xl hover:scale-[1.02] 
+      ${isPositive ? "border-green-300" : "border-red-300"}
+      `}
     >
-      
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+  
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-xl font-semibold tracking-wide text-gray-900 dark:text-gray-100">
           {ticker.symbol}
         </span>
+
         <span
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium whitespace-nowrap ${
-            isPositive
-              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+          className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium shadow-sm
+          ${isPositive
+            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
           }`}
         >
-          {isPositive ? (
-            <TrendingUp size={16} className="inline-block" />
-          ) : (
-            <TrendingDown size={16} className="inline-block" />
-          )}
+          {isPositive ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
           {isPositive ? "+" : ""}
           {ticker.changePercent.toFixed(2)}%
         </span>
       </div>
 
-    
-      <div className="text-2xl sm:text-3xl font-bold mb-5 text-gray-900 dark:text-gray-100 break-words">
 
+      <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
+        {formatPrice(ticker.low ?? ticker.high)}
       </div>
 
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <Stat label="24h High" value={formatPrice(ticker.high)} />
+        <Stat label="24h Low" value={formatPrice(ticker.low)} />
+        <Stat label="Volume" value={formatNumber(ticker.volume)} />
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <div className="flex flex-col">
-          <span className="text-gray-500 dark:text-gray-400">24h High</span>
-          <span className="font-medium text-gray-900 dark:text-gray-200">
-            {formatPrice(ticker.high)}
-          </span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-gray-500 dark:text-gray-400">24h Low</span>
-          <span className="font-medium text-gray-900 dark:text-gray-200">
-            {formatPrice(ticker.low)}
-          </span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-gray-500 dark:text-gray-400">Volume</span>
-          <span className="font-medium text-gray-900 dark:text-gray-200 truncate">
-            {formatNumber(ticker.volume)}
-          </span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-gray-500 dark:text-gray-400">Change</span>
-          <span
-            className={`font-medium ${
-              isPositive
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {formatPrice(Math.abs(ticker.change))}
-          </span>
-        </div>
+        <Stat
+          label="Change"
+          value={formatPrice(Math.abs(ticker.change))}
+          highlight
+          positive={isPositive}
+        />
       </div>
 
-      
-      <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+     
+      <div className="mt-5 text-xs text-gray-500 dark:text-gray-400">
         Updated {getTimeAgo(ticker.timestamp)}
       </div>
     </div>
   )
 }
+
+const Stat = ({
+  label,
+  value,
+  highlight = false,
+  positive = true,
+}: {
+  label: string
+  value: string | number
+  highlight?: boolean
+  positive?: boolean
+}) => (
+  <div className="flex flex-col gap-1">
+    <span className="text-gray-500 dark:text-gray-400">{label}</span>
+    <span
+      className={`text-base font-semibold 
+      ${highlight ? (positive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-gray-900 dark:text-gray-200"}
+      `}
+    >
+      {value}
+    </span>
+  </div>
+)
 
 export default TickerStatsCard
