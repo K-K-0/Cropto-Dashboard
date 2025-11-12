@@ -7,16 +7,25 @@ interface TickerStatsCardProps {
 }
 
 const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price)
+  const formatPrice = (price: number) => {
+  if (price >= 1_000_000_000) return `$${(price / 1_000_000_000).toFixed(2)}B`;
+  if (price >= 1_000_000) return `$${(price / 1_000_000).toFixed(2)}M`;
+  if (price >= 1_000) return `$${(price / 1_000).toFixed(2)}K`;
 
-  const formatNumber = (num: number) =>
-    new Intl.NumberFormat("en-US").format(Math.floor(num))
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+};
+
+const formatNumber = (num: number) => {
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + "B";
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(2) + "K";
+  return Math.floor(num).toString();
+};
 
   const getTimeAgo = (timestamp: number) => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000)
