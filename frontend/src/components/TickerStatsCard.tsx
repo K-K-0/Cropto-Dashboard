@@ -19,13 +19,14 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
     new Intl.NumberFormat("en-US").format(Math.floor(num))
 
   const getTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000)
-    if (seconds < 60) return `${seconds}s ago`
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    return `${hours}h ago`
-  }
+  const seconds = Math.floor((Date.now() - timestamp) / 1000)
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h ago`
+}
+
 
   const isPositive = ticker.changePercent >= 0
 
@@ -57,7 +58,7 @@ const TickerStatsCard: React.FC<TickerStatsCardProps> = ({ ticker }) => {
 
 
       <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
-        {formatPrice(ticker.low ?? ticker.high)}
+        {/* {formatPrice(ticker.low ?? ticker.high)} */}
       </div>
 
       <div className="grid grid-cols-2 gap-4 text-sm">
