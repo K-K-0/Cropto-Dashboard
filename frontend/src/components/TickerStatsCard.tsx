@@ -27,14 +27,7 @@ const formatNumber = (num: number) => {
   return Math.floor(num).toString();
 };
 
-  const getTimeAgo = (timestamp: number) => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000)
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h ago`
-}
+
 
 
   const isPositive = ticker.changePercent >= 0
@@ -65,11 +58,6 @@ const formatNumber = (num: number) => {
         </span>
       </div>
 
-
-      <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6 leading-tight">
-        {/* {formatPrice(ticker.low ?? ticker.high)} */}
-      </div>
-
       <div className="grid grid-cols-2 gap-4 text-sm">
         <Stat label="24h High" value={formatPrice(ticker.high)} />
         <Stat label="24h Low" value={formatPrice(ticker.low)} />
@@ -83,10 +71,7 @@ const formatNumber = (num: number) => {
         />
       </div>
 
-     
-      <div className="mt-5 text-xs text-gray-500 dark:text-gray-400">
-        Updated {getTimeAgo(ticker.timestamp)}
-      </div>
+    
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { Activity, Users, Zap, RefreshCw } from "lucide-react";
 import { useWebsocket } from "./hooks/useWebsocket";
-import StatsCard from "./components/StatsCard";
-import LivePriceCard from "./components/LivePriceCard";
+import StatsCard from "./components/statsCard";
+import LivePriceCard from "./components/livefeed";
 import TickerStatsCard from "./components/TickerStatsCard";
 
 function App() {

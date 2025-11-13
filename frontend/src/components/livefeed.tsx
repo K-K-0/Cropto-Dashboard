@@ -15,17 +15,7 @@ const LivePriceCard: React.FC<LivePriceCardProps> = ({ ticker }) => {
       maximumFractionDigits: 2,
     }).format(price);
 
-  const getTimeAgo = (timestamp: number) => {
-    if (!timestamp) return "—";
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (isNaN(seconds)) return "—";
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  };
-
+  
   return (
     <div
       className="
@@ -58,9 +48,8 @@ const LivePriceCard: React.FC<LivePriceCardProps> = ({ ticker }) => {
           <p className="text-base sm:text-lg font-semibold text-gray-100 truncate">
             {ticker.symbol}
           </p>
-          <p className="text-xs text-gray-500 truncate">
-            Updated {getTimeAgo(ticker.timestamp)}
-          </p>
+       
+        
         </div>
       </div>
 
