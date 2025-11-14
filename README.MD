@@ -1,124 +1,126 @@
-📈 Crypto Market Backend — Go (Gin)
+📈 Crypto Market Backend — Golang (Gin)
 
-A production-ready backend built using Golang + Gin that provides real-time crypto market data, ticker data, and historical candlestick data.
-Integrated with Docker, Docker Compose, and CI/CD pipelines, ready for deployment.
+A production-ready backend built using Golang + Gin to fetch live trade data, ticker data, and historical candlestick (OHLCV) data directly from Binance.
+Includes Docker, Docker Compose, and CI/CD pipeline support for easy deployment to AWS/GCP/Render/Railway.
 
 🚀 Features
-✅ Market Data (Live Trades)
 
-Fetches real-time trade information for any supported crypto pair.
+Live Crypto Trade Data (real-time market updates)
 
-✅ Ticker Data
+Ticker Data (24-hour price, volume, change)
 
-Get ticker price updates from Binance (24hr statistics etc.).
+Historical Candlestick Data (1m, 5m, 1h, 4h, 1d intervals)
 
-✅ Historical Candle Data
+Multiple Symbols Historical API
 
-Supports historical OHLCV (Open, High, Low, Close, Volume) data for any interval.
+REST API using Gin
 
-🔧 Tech Stack
+Binance Integration
 
-Go (Golang)
+Production-ready Docker Setup
 
-Gin Framework
+CI/CD Ready
 
-Binance API
+Clean Project Structure
 
-Docker + Docker Compose
+📁 Project Structure
+/api            → All API route handlers
+/services       → Binance service & data fetch logic
+/utils          → Helper utilities
+/main.go        → App entrypoint
+/Dockerfile     → Production container
+/go.mod         → Dependencies
 
-CI/CD Pipeline (GitHub Actions / GitLab / etc.)
-
-
-🛠 Setup Instructions
-1. Clone the repository
-git clone https://github.com/yourusername/crypto-backend.git
+🛠️ Run Locally
+1. Clone the project
+git clone <repo-url>
 cd crypto-backend
 
-▶️ Run Locally (Without Docker)
-Install dependencies
+2. Install dependencies
 go mod tidy
 
-Start the server
+3. Start server
 go run main.go
 
-Local API Base URL
+
+Server will run on:
+
 http://localhost:8080
 
-🐳 Run with Docker
-Build Docker image
+🐳 Run With Docker
+Build image
 docker build -t crypto-backend .
 
 Run container
 docker run -p 8080:8080 crypto-backend
 
-📌 API Endpoints
-1. Live Trade Data
-POST /api/live
+🔌 API Endpoints
+1. Live Trades (POST)
 
+URL: /api/trade
 
-Request Body:
+Body:
 
-{
-  "symbol": "BTCUSDT"
-}
+{ "symbol": "BTCUSDT" }
 
-2. Ticker Data
-POST /api/ticker
+2. Ticker Data (POST)
 
+URL: /api/ticker
 
-Request Body:
+Body:
 
-{
-  "symbol": "BTCUSDT"
-}
+{ "symbol": "ETHUSDT" }
 
-3. Historical Candlestick Data
-POST /api/historical
+3. Historical Data (POST)
 
+Fetch OHLCV candlestick data.
 
-Request Body:
+URL: /api/historical
+
+Body:
 
 {
   "symbol": "BTCUSDT",
   "interval": "1h",
-  "limit": 200
-}
-
-4. Multiple Symbols (Charts)
-POST /api/chart/multiple
-
-
-Request Example:
-
-{
-  "symbols": ["BTCUSDT", "ETHUSDT"],
-  "interval": "1h",
   "limit": 100
 }
 
-🧪 Testing With Postman
-Local API URL
-http://localhost:8080/api/<endpoint>
+4. Multiple Symbols Historical (POST)
 
+URL: /api/chart/multiple
 
-Example for historical data:
+Body:
+
+{
+  "symbols": ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+  "interval": "1h",
+  "limit": 50
+}
+
+❗ Important Notes
+
+All symbols must be uppercase
+BTCUSDT, ETHUSDT, SOLUSDT, etc.
+
+Binance returns "Invalid symbol" if:
+
+lowercase is used
+
+wrong pair (e.g., BTC/USD)
+
+extra characters (spaces, slashes)
+
+👨‍🔧 Testing With Postman
+
+Select POST method
+
+Set URL (example):
 
 http://localhost:8080/api/historical
 
 
-Set Content-Type: application/json
-Add correct symbol → e.g. "BTCUSDT" (uppercase, no spaces)
+Open Body → raw → JSON
 
-⚠️ Common Errors & Fixes
-❌ Error: "Invalid symbol"
+Paste request body
 
-Binance requires:
-
-Uppercase symbols
-
-Without spaces or slashes
-
-Example → BTCUSDT, ETHUSDT, SOLUSDT
-❌ “BTC-USDT”
-❌ “btc/usdt”
-❌ “ btcusdt ”
+Send the request
