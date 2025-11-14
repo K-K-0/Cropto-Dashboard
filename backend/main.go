@@ -4,10 +4,12 @@ import (
 	"context"
 	"cropto-dashboard/exchange"
 	"cropto-dashboard/server/websocket"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,9 +17,6 @@ import (
 )
 
 func main() {
-
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -39,7 +38,7 @@ func main() {
 	router := setupRouter(hub)
 
 	srv := &http.Server{
-		Addr:           ":8080",
+		Addr:           ":8000",
 		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
@@ -133,6 +132,24 @@ func setupRouter(hub *websocket.Hub) *gin.Engine {
 				"uptime in second":  time.Since(startTime).Seconds(),
 			})
 		})
+
+		api.GET("/chart/:symbol", func(c *gin.Context) {
+			symbol := strings.ToUpper(c.Param("symbol"))
+			interval := c.DefaultQuery("interval", "1h")
+			limitStr := c.DefaultQuery("limit", "100")
+
+			limit := 100
+			fmt.Sscanf(limitStr, "%d", &limit)
+
+			data, err := exchange.GetHistoricalData(symbol, interval, limit)
+			if err != nil {
+				c.JSON(500, gin.H{"error": err.Error()})
+				return
+			}
+
+			c.JSON(200, data)
+		})
+
 	}
 	return router
 }
