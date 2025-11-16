@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -53,6 +54,141 @@ func fetch(url string) ([]byte, error) {
 	}
 
 	return io.ReadAll(res.Body)
+}
+
+func GetHistoricalDataWithIndicators(symbol, interval string, limit int, includeIndicators bool) (*ChartData, error) {
+	data, err := GetHistoricalData(symbol, interval, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	if !includeIndicators || len(data.Candlesticks) == 0 {
+		return data, nil
+	}
+
+	closePrice := make([]float64, len(data.Candlesticks))
+	highPrice := make([]float64, len(data.Candlesticks))
+	lowPrice := make([]float64, len(data.Candlesticks))
+
+	for i, candle := range data.Candlesticks {
+		close, _ := strconv.ParseFloat(candle.Close, 64)
+		high, _ := strconv.ParseFloat(candle.High, 64)
+		low, _ := strconv.ParseFloat(candle.Low, 64)
+		closePrice[i] = close
+		highPrice[i] = high
+		lowPrice[i] = low
+	}
+
+	indicators := TechnicalIndicators{}
+
+	if len(closePrice) >= 20 {
+		indicators.MA20 = calculateMA(closePrice, 20)
+	}
+
+	if len(closePrice) >= 50 {
+		indicators.MA50 = calculateMA(closePrice, 50)
+	}
+
+	if len(closePrice) >= 200 {
+		indicators.MA200 = calculateMA(closePrice, 200)
+	}
+
+	if len(closePrice) >= 14 {
+		indicators.RSI = calculateMA(closePrice, 14)
+	}
+
+	if len(closePrice) >= 26 {
+		macd, signal, histogram := calculateMACD(closePrice, 12, 26, 9)
+		indicators.MACD = macd
+		indicators.Signal = signal
+		indicators.Histogram = histogram
+	}
+	data.Indicators = indicators
+	return data, nil
+}
+
+func calculateMA(prices []float64, period int) []float64 {
+	ma := make([]float64, len(prices))
+	for i := period - 1; i < len(prices); i++ {
+		sum := 0.0
+		for j := 0; j < period; j++ {
+			sum += prices[i-j]
+		}
+		ma[i] = sum / float64(period)
+	}
+
+	return ma
+}
+
+func calculateRSI(prices []float64, period int) []float64 {
+	rsi := make([]float64, len(prices))
+	gains := make([]float64, len(prices))
+	losses := make([]float64, len(prices))
+
+	for i := 1; i < len(prices); i++ {
+		change := prices[i] - prices[i-1]
+		if change > 0 {
+			gains[i] = change
+		} else {
+			losses[i] = -change
+		}
+	}
+
+	avgGain := 0.0
+	avgLoss := 0.0
+	for i := 1; i <= period; i++ {
+		avgGain += gains[i]
+		avgLoss += losses[i]
+	}
+	avgGain /= float64(period)
+	avgLoss /= float64(period)
+
+	for i := period; i < len(prices); i++ {
+		if avgLoss == 0 {
+			rsi[i] = 100
+		} else {
+			rs := avgGain / avgLoss
+			rsi[i] = 100 - (100 / (1 + rs))
+		}
+		avgGain = (avgGain*float64(period-1) + gains[i]) / float64(period)
+		avgLoss = (avgLoss*float64(period-1) + losses[i]) / float64(period)
+	}
+	return rsi
+}
+
+func calculateEMA(prices []float64, period int) []float64 {
+	ema := make([]float64, len(prices))
+	multiplier := 2.0 / float64(period+1)
+
+	sum := 0.0
+	for i := 0; i < period; i++ {
+		sum += prices[i]
+	}
+	ema[period-1] = sum / float64(period)
+
+	for i := period; i < len(prices); i++ {
+		ema[i] = (prices[i]-ema[i-1])*multiplier + ema[i-1]
+	}
+	return ema
+}
+
+func calculateMACD(price []float64, fast, slow, signal int) ([]float64, []float64, []float64) {
+	fastEMA := calculateEMA(price, fast)
+	slowEMA := calculateEMA(price, slow)
+
+	macd := make([]float64, len(price))
+
+	for i := 0; i < len(price); i++ {
+		macd[i] = fastEMA[i] - slowEMA[i]
+	}
+
+	signalLine := calculateEMA(macd, signal)
+	histogram := make([]float64, len(price))
+	for i := 0; i < len(price); i++ {
+		histogram[i] = macd[i] - signalLine[i]
+	}
+
+	return macd, signalLine, histogram
 }
 
 func GetHistoricalData(symbol, interval string, limit int) (*ChartData, error) {
