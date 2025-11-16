@@ -23,10 +23,21 @@ type CandleStick struct {
 	CloseTime int64  `json:"closeTime"`
 }
 
+type TechnicalIndicators struct {
+	MA20      []float64 `json:"ma20,omitempty"`
+	MA50      []float64 `json:"ma50,omitempty"`
+	MA200     []float64 `json:"ma200,omitempty"`
+	RSI       []float64 `json:"rsi,omitempty"`
+	MACD      []float64 `json:"macd,omitempty"`
+	Signal    []float64 `json:"signal,omitempty"`
+	Histogram []float64 `json:"histogram,omitempty"`
+}
+
 type ChartData struct {
-	Symbol       string        `json:"symbol"`
-	Interval     string        `json:"interval"`
-	Candlesticks []CandleStick `json:"candlesticks"`
+	Symbol       string              `json:"symbol"`
+	Interval     string              `json:"interval"`
+	Candlesticks []CandleStick       `json:"candlesticks"`
+	Indicators   TechnicalIndicators `json:"indicators"`
 }
 
 func fetch(url string) ([]byte, error) {
